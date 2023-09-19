@@ -46,14 +46,14 @@ job_descriptions = dataset[0]['job_description (string)'][:15]
 from transformers import DistilBertTokenizer
 tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
 token_cv_tokens = [tokenizer(text, padding=True, truncation=True, return_tensors="pt") for text in df['Resume Content'][:10]]
-tokenized_job_descriptions = [tokenizer(text, padding=True, truncation=True, return_tensors="pt") for text in job_descriptions]
+token_job_descriptions = [tokenizer(text, padding=True, truncation=True, return_tensors="pt") for text in job_descriptions]
 
 
 
 # Load Bert model and create embedding from cv token and job descroption token
 from transformers import DistilBertModel
 model = DistilBertModel.from_pretrained("distilbert-base-uncased")
-embeddings_job_descriptions = [model(**input_dict).last_hidden_state.mean(dim=1).detach().numpy() for input_dict in tokenized_job_descriptions]
+embeddings_job_descriptions = [model(**input_dict).last_hidden_state.mean(dim=1).detach().numpy() for input_dict in token_job_descriptions]
 embeddings_cv_token = [model(**input_dict).last_hidden_state.mean(dim=1).detach().numpy() for input_dict in token_cv_tokens]
 
 
