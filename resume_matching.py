@@ -5,6 +5,7 @@ import os
 
 
 
+print("STARTING THE DATA EXTRACTION PROCESS ")
 # load the parsed resume data from the root folder
 def extract_text(pdf_file_path):
     text = ""
@@ -27,39 +28,47 @@ def extract_data(root_folder):
 root = "PATH TO DATA FOLDER"
 
 resume_data = extract_data(root)
+print("COMPLETED THE DATA EXTRACTION PROCESS")
 df = pd.DataFrame(resume_data)
 
 def clean(string):
     return ' '.join(i for i in string.split('\n'))
 
 df['Resume Content'] = df['Resume Content'].apply(lambda x: clean(x))
+print("CLEANED THE DATA")
 
 
 
 # load the first 15 job description from huggingface dataset
 dataset = pd.read_html('https://huggingface.co/datasets/jacob-hugging-face/job-descriptions/viewer/default/train?row=2')
 job_descriptions = dataset[0]['job_description (string)'][:15]
+print("JOB DESCRIPTION FROM HUGGING FACE LOADED")
 
 
 
 # Load the Bert Tokenizer and tokenize all cv content and job description
+print("\nSTARTED TOKENIZING BOTH RESUME DATA AND JOB DESCRIPTION DATA")
 from transformers import DistilBertTokenizer
 tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
 token_cv_tokens = [tokenizer(text, padding=True, truncation=True, return_tensors="pt") for text in df['Resume Content'][:10]]
 token_job_descriptions = [tokenizer(text, padding=True, truncation=True, return_tensors="pt") for text in job_descriptions]
+print("COMPLETED TOKENIZING BOTH RESUME DATA AND JOB DESCRIPTION DATA")
 
 
 
 # Load Bert model and create embedding from cv token and job descroption token
+print("\nSTARTING TO CREATE EMBEDDINGS")
 from transformers import DistilBertModel
 model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 embeddings_job_descriptions = [model(**input_dict).last_hidden_state.mean(dim=1).detach().numpy() for input_dict in token_job_descriptions]
 embeddings_cv_token = [model(**input_dict).last_hidden_state.mean(dim=1).detach().numpy() for input_dict in token_cv_tokens]
+print("COMPLETED CREATING EMBEDDINGS")
 
 
 
 # Find cosine similarity between cv embeddings and job description embeddings
 # Save the similarity score and map it with the file name
+print("\nSTARTING TO FIND COSINE SIMILARITY")
 from sklearn.metrics.pairwise import cosine_similarity
 final = []
 name = {}
@@ -72,10 +81,12 @@ for i , embeddings_jd in enumerate(embeddings_job_descriptions):
     temp.sort(reverse=True)
     temp2 = [df.iloc[name[(i , k)] , 0] for k in temp[:5]]
     final.append(temp2)
-    
+print("COMPLETED FINDING COSINE SIMILARITY")
+
     
     
 # Print top 5 match for every job description
+print("\nALL THE RESULTS")
 for i , j in enumerate(final):
     print(f'Top 5 Match for job description {i+1} - {job_descriptions[i]}')
     print(final[i])
